@@ -35,9 +35,9 @@ the layer stack.
 Python **3.12+** (the `type X = ...` alias syntax in [typedefs.py](typedefs.py)
 requires it). Developed on 3.14.
 
-The network itself has **no third-party dependencies** — the standard library is
-enough. [mnist_loader.py](mnist_loader.py) downloads and parses the IDX files
-directly.
+**No third-party dependencies** — the standard library is enough.
+[mnist_loader.py](mnist_loader.py) downloads and parses the IDX files directly,
+so there is nothing to `pip install`.
 
 ## Quick start
 
@@ -87,18 +87,17 @@ Pure-Python convolution is slow — expect a couple of seconds per image. Keep t
 | File | Purpose |
 | --- | --- |
 | [matrix.py](matrix.py) | The `matrix` class: multiply, element-wise product, sliding `window`, `conv2D`, `reLu`, `maxPool`, `flatten` |
-| [utils.py](utils.py) | He initialization, dense layers, ReLU, softmax, and the `feature_extraction` / `classification` pipelines |
-| [typedefs.py](typedefs.py) | The `Layer` type alias — a `(filters, stride)` pair |
+| [utils.py](utils.py) | He initialization, dense layers, ReLU, softmax, cross-entropy, and the `feature_extraction` / `classification` pipelines |
+| [typedefs.py](typedefs.py) | The `Layer` and `ConvCache` type aliases |
 | [mnist_loader.py](mnist_loader.py) | Stdlib-only IDX downloader and parser, plus `one_hot` and `ascii_art` helpers |
-| [init.py](init.py) | Entry point: builds the network and runs the forward pass |
+| [init.py](init.py) | Entry point: builds the network, runs the forward pass, reports per-image loss |
 | [consts.py](consts.py) | A library of classic hand-designed 3×3 kernels (Sobel, Scharr, Prewitt, Gaussian blur, emboss…), useful for sanity-checking `conv2D` |
-| [setup.py](setup.py) | Optional alternative: pulls MNIST from Kaggle via `kagglehub`. Not needed — `mnist_loader.py` handles downloading on its own |
 
-`requirements.txt` pins the dependencies for that optional Kaggle path only. You
-can skip it entirely.
+There is no `requirements.txt` — nothing outside the standard library is needed.
 
 ## Roadmap
 
+- [x] Cache per-layer activations during the forward pass (`ConvCache`)
 - [ ] Backward pass: gradients for dense, ReLU, softmax + cross-entropy
 - [ ] Gradient for `conv2D`
 - [ ] SGD training loop with mini-batches

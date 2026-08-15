@@ -2,7 +2,7 @@ import math
 import random
 
 from matrix import matrix
-from typedefs import Layer
+from typedefs import ConvCache, Layer
 
 
 def he_kernel(k=3, c_in=1):
@@ -32,19 +32,37 @@ def softmax(z):
     t = sum(e)
     return [v / t for v in e]
 
-def feature_extraction(layers: list[Layer], curr: list[matrix]) -> list[matrix]:
-    if len(layers) == 0: return curr
+def cross_entropy(probs, label):
+    """Negative log-likelihood of the true class. Clamped so a probability that
+    underflows to 0.0 gives a large loss instead of a math domain error."""
+    return -math.log(max(probs[label], 1e-12))
 
-    filters, stride = layers[0]
-    out = []
-    for stack in filters:
-        acc = None
-        for ch_map, kern in zip(curr, stack):
-            m = ch_map.conv2D(kern, stride)
-            acc = m if acc is None else acc.add(m)
-        assert acc is not None
-        out.append(acc.reLu())
-    return feature_extraction(layers[1:], out)
+def predict(probs):
+    return max(range(len(probs)), key=lambda i: probs[i])
+
+def feature_extraction(
+    layers: list[Layer], curr: list[matrix]
+) -> tuple[list[matrix], list[ConvCache]]:
+    """Run the conv stack, returning the final maps and one ConvCache per layer.
+
+    Iterative rather than recursive so each layer's input survives the call —
+    the backward pass needs them to compute conv gradients."""
+    caches: list[ConvCache] = []
+
+    for filters, stride in layers:
+        pre_act = []
+        for stack in filters:
+            acc = None
+            for ch_map, kern in zip(curr, stack):
+                m = ch_map.conv2D(kern, stride)
+                acc = m if acc is None else acc.add(m)
+            assert acc is not None
+            pre_act.append(acc)
+
+        caches.append((curr, pre_act))
+        curr = [z.reLu() for z in pre_act]
+
+    return curr, caches
 
 def classification(input: list[matrix], w1,b1, w2,b2) -> list[float]:
     flattened = flatten_3d(input)

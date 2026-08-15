@@ -3,7 +3,9 @@ from typing import Literal, TypeAlias
 
 
 class matrix:
-    def __init__(self, ls: list[list[float]]= [[]],r:int=0, c:int=0) -> None:
+    def __init__(self, ls: list[list[float]] | None = None,r:int=0, c:int=0) -> None:
+        if ls is None:
+            ls = [[]]
         self.rows: int = r if r != 0 else len(ls)
         self.cols: int = c if c != 0 else len(ls[0])
         self.values: list[list[float]] = [[ls[i][j] for j in range(self.cols)] for i in range(self.rows)]
@@ -39,8 +41,6 @@ class matrix:
             for j in range(b.cols):
                 s:float=0
                 for k in range(self.cols):
-                    if type(self.values[k][i]) == type(int):
-                        raise Exception("Matrices can not multiplied ", self.__qualname__, "doesnt")
                     s += self.values[i][k] * b.values[k][j]
                 ret[i][j] = s # type: ignore
                 
