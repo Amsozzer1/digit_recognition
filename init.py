@@ -65,15 +65,16 @@ if __name__ == "__main__":
 
 
     layers: list[Layer] = [
-        (conv1_filters,2),
-        (conv2_filters,2),
+        (conv1_filters,1),
+        (conv2_filters,1),
     ]
 
     total_loss = 0.0
 
     for img, label in zip(imgs, lbls):
-        input = matrix([[p / 255.0 for p in row] for row in img])
+        input = matrix([[p for p in row] for row in img])
         features, caches = feature_extraction(layers, [input]) # FEATURE EXTRACTION
+        # 
     #     probs = classification(features, matrix(W1), b1, matrix(W2), b2) # CLASSIFICATION
 
     #     loss = cross_entropy(probs, label)

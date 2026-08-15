@@ -61,14 +61,16 @@ def feature_extraction(
     the backward pass needs them to compute conv gradients."""
     caches: list[ConvCache] = []
 
-    for filters, stride in layers:
+    for i, (filters, stride) in enumerate(layers):
         pre_act = []
-        for idx,stack in enumerate(filters):
+        for j,stack in enumerate(filters):
             acc = None
-            for ch_map, kern in zip(curr, stack):
-                m = ch_map.conv2D(kern, stride)
+            for k,(ch_map, kern) in enumerate(zip(curr, stack)):
+                m = ch_map.conv2D(kern,i,j,k,stride)
                 acc = m if acc is None else acc.add(m)
+                
             assert acc is not None
+            acc = acc.maxPool(2)
             pre_act.append(acc)
 
         caches.append((curr, pre_act))

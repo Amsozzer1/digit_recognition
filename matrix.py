@@ -101,7 +101,7 @@ class matrix:
         return matrix([[self.values[i][j] * b.values[i][j]
                         for j in range(self.cols)] for i in range(self.rows)])
 
-    def conv2D(self, kernel: "matrix", stride:int=1, pos: Mode = "Top") -> "matrix":
+    def conv2D(self, kernel: "matrix", x: int, y: int,z:int, stride:int=1, pos: Mode = "Top") -> "matrix":
         s=kernel.rows
         ls = []
         for i in range(0, self.rows-s+1, stride):
@@ -109,12 +109,14 @@ class matrix:
             for j in range(0, self.cols-s+1, stride):
                 curr_window = self.window(i,j,s,pos)
                 product = curr_window.dotProduct(kernel)
+                # product.saveAs("out/conv2D/"+str(i)+"/"+str(j))
                 t.append(product.sum())
-                                # if m.size() != (6,6):
-                self.saveImage("out/feature_extraction/"+str(i)+str(j))
-                    # print(m.size())
             ls.append(t)
-        return matrix(ls)
+        mat = matrix(ls)
+        # if mat.size() == (26,26):
+        #     mat.saveAs("out/conv2D/"+str(x)+"/"+str(y))
+        mat.saveAs("out/conv2D/"+str(x)+"/"+str(y)+"/"+str(z))
+        return mat
 
     def reLu(self) -> "matrix":
         m = [[0.0]*self.cols for i in range(self.rows)]
@@ -151,10 +153,15 @@ class matrix:
                 r.append(self.values[i][j])
         return r
 
-    def saveImage(self, location: str):
+    def saveAs(self, location: str):
+        """Min-max normalise per image before writing. Conv pre-activations are
+        signed and zero-mean, so clipping to [0,1] would render most of the map
+        as black."""
         path = Path(location)
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        img = np.array(self.values)
-        img = (np.clip(img, 0, 1) * 255).astype(np.uint8)
+        img = np.array(self.values, dtype=float)
+        lo, hi = img.min(), img.max()
+        img = (img - lo) / (hi - lo) if hi > lo else np.zeros_like(img)
+        img = (img * 255).astype(np.uint8)
         Image.fromarray(img, mode="L").save(path.with_name(path.name + ".png"))
