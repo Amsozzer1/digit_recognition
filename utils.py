@@ -1,9 +1,5 @@
 import math
 import random
-from pathlib import Path
-
-import numpy as np
-from PIL import Image
 
 from matrix import matrix
 from typedefs import ConvCache, Layer
@@ -26,13 +22,6 @@ def he_dense(n_out, n_in) -> matrix:
 
 def dense(x: list[float], W: matrix, b: list[float]) -> list[float]:
     # 𝑧 = 𝑤₁𝑥₁ + 𝑤₂𝑥₂ + 𝑤₃𝑥₃ + 𝑏
-    # z = []
-    # for j in range(W.size()[1]):
-    #     zj = b[j]
-    #     for i in range(W.size()[0]):
-    #         zj+= W[i][j] * x[i] # type: ignore
-    #     z.append(zj)
-    # return z
     return [sum(w * xi for w, xi in zip(row, x)) + bj for row, bj in zip(W, b)] # type: ignore
 
 def relu_vec(x):
