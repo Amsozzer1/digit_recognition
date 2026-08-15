@@ -74,11 +74,7 @@ def feature_extraction(
 
     return curr, caches
 
-def classification(features: list[matrix]) -> list[float]:
-    size = features[0].size()
-    FLAT = len(features) * size[0] * size[1]
-    W1, b1 = he_dense(128, FLAT), [0.0] * 128
-    W2, b2 = he_dense(10, 128),   [0.0] * 10
+def classification(features: list[matrix],W1,b1,W2,b2) -> list[float]:
     flattened_features = flatten_3d(features) 
     h = relu_vec(dense(flattened_features, W1, b1))
     probs = softmax(dense(h, W2, b2))

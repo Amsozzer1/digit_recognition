@@ -31,6 +31,7 @@ from utils import (
     classification,
     cross_entropy,
     feature_extraction,
+    he_dense,
     he_kernel,
     predict,
 )
@@ -39,7 +40,8 @@ random.seed(0)
 
 conv1_filters = [[he_kernel(3, 1)] for _ in range(32)]
 conv2_filters = [[he_kernel(3, 32) for _ in range(32)] for _ in range(64)]
-
+W1, b1 = he_dense(128, 64*5*5), [0.0] * 128
+W2, b2 = he_dense(10, 128),   [0.0] * 10
 if __name__ == "__main__":
 
     imgs, lbls = load_mnist("train", limit=5)
@@ -54,7 +56,7 @@ if __name__ == "__main__":
     for n, (img, label) in enumerate(zip(imgs, lbls)):
         input = matrix([[p for p in row] for row in img])
         features, caches = feature_extraction(layers, [input], dump=str(n)) # FEATURE EXTRACTION
-        probs = classification(features) # CLASSIFICATION
+        probs = classification(features,W1,b1,W2,b2) # CLASSIFICATION
 
         loss = cross_entropy(probs, label)
         total_loss += loss
