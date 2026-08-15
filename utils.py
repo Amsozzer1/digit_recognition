@@ -1,5 +1,9 @@
 import math
 import random
+from pathlib import Path
+
+import numpy as np
+from PIL import Image
 
 from matrix import matrix
 from typedefs import ConvCache, Layer
@@ -20,8 +24,16 @@ def he_dense(n_out, n_in):
     std = (2.0 / n_in) ** 0.5
     return [[random.gauss(0.0, std) for _ in range(n_in)] for _ in range(n_out)]
 
-def dense(x, W, b):
-    return [sum(w * xi for w, xi in zip(row, x)) + bj for row, bj in zip(W, b)]
+def dense(x: list[float], W: matrix, b: list[float]) -> list[float]:
+    # 𝑧 = 𝑤₁𝑥₁ + 𝑤₂𝑥₂ + 𝑤₃𝑥₃ + 𝑏
+    z = []
+    for j in range(W.size()[1]):
+        zj = b[j]
+        for i in range(W.size()[0]):
+            zj+= W[i][j] * x[i] # type: ignore
+        z.append(zj)
+    return z
+    # return [sum(w * xi for w, xi in zip(row, x)) + bj for row, bj in zip(W, b)]
 
 def relu_vec(x):
     return [max(0.0, v) for v in x]
@@ -51,7 +63,7 @@ def feature_extraction(
 
     for filters, stride in layers:
         pre_act = []
-        for stack in filters:
+        for idx,stack in enumerate(filters):
             acc = None
             for ch_map, kern in zip(curr, stack):
                 m = ch_map.conv2D(kern, stride)
@@ -64,8 +76,8 @@ def feature_extraction(
 
     return curr, caches
 
-def classification(input: list[matrix], w1,b1, w2,b2) -> list[float]:
-    flattened = flatten_3d(input)
-    h = relu_vec(dense(flattened, w1, b1))
+def classification(features: list[matrix], w1: matrix ,b1: list[float], w2: matrix,b2: list[float]) -> list[float]:
+    flattened_features = flatten_3d(features) 
+    h = relu_vec(dense(flattened_features, w1, b1))
     probs = softmax(dense(h, w2, b2))
     return probs

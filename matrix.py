@@ -1,5 +1,8 @@
-import math
+from pathlib import Path
 from typing import Literal, TypeAlias
+
+import numpy as np
+from PIL import Image
 
 
 class matrix:
@@ -107,6 +110,9 @@ class matrix:
                 curr_window = self.window(i,j,s,pos)
                 product = curr_window.dotProduct(kernel)
                 t.append(product.sum())
+                                # if m.size() != (6,6):
+                self.saveImage("out/feature_extraction/"+str(i)+str(j))
+                    # print(m.size())
             ls.append(t)
         return matrix(ls)
 
@@ -144,3 +150,11 @@ class matrix:
             for j in range(self.cols):
                 r.append(self.values[i][j])
         return r
+
+    def saveImage(self, location: str):
+        path = Path(location)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        img = np.array(self.values)
+        img = (np.clip(img, 0, 1) * 255).astype(np.uint8)
+        Image.fromarray(img, mode="L").save(path.with_name(path.name + ".png"))
