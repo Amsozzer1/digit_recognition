@@ -20,20 +20,20 @@ def flatten_3d(input: list[matrix]):
         r+=mat.flatten()
     return r
 
-def he_dense(n_out, n_in):
+def he_dense(n_out, n_in) -> matrix:
     std = (2.0 / n_in) ** 0.5
-    return [[random.gauss(0.0, std) for _ in range(n_in)] for _ in range(n_out)]
+    return matrix([[random.gauss(0.0, std) for _ in range(n_in)] for _ in range(n_out)])
 
 def dense(x: list[float], W: matrix, b: list[float]) -> list[float]:
     # 𝑧 = 𝑤₁𝑥₁ + 𝑤₂𝑥₂ + 𝑤₃𝑥₃ + 𝑏
-    z = []
-    for j in range(W.size()[1]):
-        zj = b[j]
-        for i in range(W.size()[0]):
-            zj+= W[i][j] * x[i] # type: ignore
-        z.append(zj)
-    return z
-    # return [sum(w * xi for w, xi in zip(row, x)) + bj for row, bj in zip(W, b)]
+    # z = []
+    # for j in range(W.size()[1]):
+    #     zj = b[j]
+    #     for i in range(W.size()[0]):
+    #         zj+= W[i][j] * x[i] # type: ignore
+    #     z.append(zj)
+    # return z
+    return [sum(w * xi for w, xi in zip(row, x)) + bj for row, bj in zip(W, b)] # type: ignore
 
 def relu_vec(x):
     return [max(0.0, v) for v in x]
@@ -53,24 +53,31 @@ def predict(probs):
     return max(range(len(probs)), key=lambda i: probs[i])
 
 def feature_extraction(
-    layers: list[Layer], curr: list[matrix]
+    layers: list[Layer], curr: list[matrix], dump: str | None = None
 ) -> tuple[list[matrix], list[ConvCache]]:
     """Run the conv stack, returning the final maps and one ConvCache per layer.
 
     Iterative rather than recursive so each layer's input survives the call —
-    the backward pass needs them to compute conv gradients."""
+    the backward pass needs them to compute conv gradients.
+
+    `dump` names a subdirectory of out/ to write feature maps into, as
+    out/<dump>/L<layer>/<filter>.png — one image per filter, written after the
+    channels are accumulated and pooled so it matches what the next layer
+    actually receives."""
     caches: list[ConvCache] = []
 
     for i, (filters, stride) in enumerate(layers):
         pre_act = []
         for j,stack in enumerate(filters):
             acc = None
-            for k,(ch_map, kern) in enumerate(zip(curr, stack)):
-                m = ch_map.conv2D(kern,i,j,k,stride)
+            for ch_map, kern in zip(curr, stack):
+                m = ch_map.conv2D(kern,stride)
                 acc = m if acc is None else acc.add(m)
-                
+
             assert acc is not None
             acc = acc.maxPool(2)
+            if dump is not None:
+                acc.saveAs("out/"+dump+"/L"+str(i + 1)+"/"+str(j))
             pre_act.append(acc)
 
         caches.append((curr, pre_act))
@@ -78,8 +85,12 @@ def feature_extraction(
 
     return curr, caches
 
-def classification(features: list[matrix], w1: matrix ,b1: list[float], w2: matrix,b2: list[float]) -> list[float]:
+def classification(features: list[matrix]) -> list[float]:
+    size = features[0].size()
+    FLAT = len(features) * size[0] * size[1]
+    W1, b1 = he_dense(128, FLAT), [0.0] * 128
+    W2, b2 = he_dense(10, 128),   [0.0] * 10
     flattened_features = flatten_3d(features) 
-    h = relu_vec(dense(flattened_features, w1, b1))
-    probs = softmax(dense(h, w2, b2))
+    h = relu_vec(dense(flattened_features, W1, b1))
+    probs = softmax(dense(h, W2, b2))
     return probs

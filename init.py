@@ -44,25 +44,9 @@ random.seed(0)
 conv1_filters = [[he_kernel(3, 1)] for _ in range(32)]
 conv2_filters = [[he_kernel(3, 32) for _ in range(32)] for _ in range(64)]
 
-
-FLAT = 64 * 6 * 6
-W1, b1 = he_dense(128, FLAT), [0.0] * 128
-W2, b2 = he_dense(10, 128),   [0.0] * 10
-
-
-
 if __name__ == "__main__":
 
     imgs, lbls = load_mnist("train", limit=5)
-
-    # for i in range(len(imgs)):
-    #     image = np.array(imgs[i])
-    #     # image = (image * 255).astype(np.uint8)
-    #     # img = Image.fromarray(image.astype(np.uint8), mode="L")
-    #     # img.save("out/trial.png")
-    #     x = matrix(imgs[i])
-    #     saveImage(x, "out/x/trial")
-
 
     layers: list[Layer] = [
         (conv1_filters,1),
@@ -71,11 +55,11 @@ if __name__ == "__main__":
 
     total_loss = 0.0
 
-    for img, label in zip(imgs, lbls):
+    for n, (img, label) in enumerate(zip(imgs, lbls)):
         input = matrix([[p for p in row] for row in img])
-        features, caches = feature_extraction(layers, [input]) # FEATURE EXTRACTION
-        # 
-    #     probs = classification(features, matrix(W1), b1, matrix(W2), b2) # CLASSIFICATION
+        features, caches = feature_extraction(layers, [input], dump=str(n)) # FEATURE EXTRACTION
+        print(len(features), features[0].size())
+        probs = classification(features) # CLASSIFICATION
 
     #     loss = cross_entropy(probs, label)
     #     total_loss += loss
