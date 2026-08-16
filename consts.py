@@ -1,5 +1,5 @@
 from matrix import matrix
-
+LR = 0.01
 filters: dict[str, matrix] = {
     "identity": matrix([
         [0, 0, 0],

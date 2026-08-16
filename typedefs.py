@@ -11,3 +11,8 @@ type ConvCache = tuple[
     list[matrix],       # inputs:  maps entering the layer  [C_in]
     list[matrix],       # pre_act: conv sums before ReLU    [C_out]
 ]
+
+type DenseCache = tuple[
+    list[float],   # flattened: input to dense 1        [2304]
+    list[float],   # h: post-ReLU hidden activations    [128]
+]

@@ -1,15 +1,16 @@
 import math
 import random
 
+from consts import LR
 from matrix import matrix
-from typedefs import ConvCache, Layer
+from typedefs import ConvCache, DenseCache, Layer
 
 
 def he_kernel(k=3, c_in=1):
     std = (2.0 / (k * k * c_in)) ** 0.5      # 0.4714 for 3x3x1
     return matrix([[random.gauss(0.0, std) for _ in range(k)] for _ in range(k)])
 
-def flatten_3d(input: list[matrix]):
+def flatten_3d(input: list[matrix]) -> list[float]:
     r = []
     for m in range(len(input)):
         mat = input[m]
@@ -22,7 +23,9 @@ def he_dense(n_out, n_in) -> matrix:
 
 def dense(x: list[float], W: matrix, b: list[float]) -> list[float]:
     # 𝑧 = 𝑤₁𝑥₁ + 𝑤₂𝑥₂ + 𝑤₃𝑥₃ + 𝑏
-    return [sum(w * xi for w, xi in zip(row, x)) + bj for row, bj in zip(W, b)] # type: ignore
+    X = matrix([[row] for row in x]) #[[1,2,3,4,...,n]] -> [ [1],[2],[3]....[n] ]
+    B = matrix([[row] for row in b])
+    return W.mult(X).add(B).flatten() # 1 * 64
 
 def relu_vec(x):
     return [max(0.0, v) for v in x]
@@ -37,7 +40,8 @@ def cross_entropy(probs, label):
     """Negative log-likelihood of the true class. Clamped so a probability that
     underflows to 0.0 gives a large loss instead of a math domain error."""
     return -math.log(max(probs[label], 1e-12))
-
+def onehot(label: int, n: int = 10) -> list[float]:
+    return [1.0 if i==label else 0.0 for i in range(n)]
 def predict(probs):
     return max(range(len(probs)), key=lambda i: probs[i])
 
@@ -64,18 +68,38 @@ def feature_extraction(
                 acc = m if acc is None else acc.add(m)
 
             assert acc is not None
-            acc = acc.maxPool(2)
             if dump is not None:
                 acc.saveAs("out/"+dump+"/L"+str(i + 1)+"/"+str(j))
             pre_act.append(acc)
 
         caches.append((curr, pre_act))
-        curr = [z.reLu() for z in pre_act]
+        curr = [(z.reLu()).maxPool(2) for z in pre_act]
 
     return curr, caches
-
-def classification(features: list[matrix],W1,b1,W2,b2) -> list[float]:
+# [[]]
+def classification(features: list[matrix],W1,b1,W2,b2) -> tuple[list[float], DenseCache]:
     flattened_features = flatten_3d(features) 
-    h = relu_vec(dense(flattened_features, W1, b1))
-    probs = softmax(dense(h, W2, b2))
-    return probs
+    l1 = dense(flattened_features, W1, b1) # z = wx + b
+    h = relu_vec(l1)
+    l2 = dense(h, W2, b2)
+    probs = softmax(l2)
+    caches: DenseCache = flattened_features, h
+    return probs, caches
+
+def dense_backward(
+    dz: list[float],
+    x:  list[float],
+    W:  matrix,
+) -> tuple[matrix, list[float], list[float]]:
+    n_out, n_in = W.rows, W.cols
+    dW = matrix([[dz[j] * x[i] for i in range(n_in)] for j in range(n_out)])
+    db = list(dz)
+    dx = [sum(W.values[j][i] * dz[j] for j in range(n_out)) for i in range(n_in)]
+    return dW, db, dx
+
+def sgd_update(W: matrix, b, dW: matrix, db, lr=LR):
+    for j in range(W.rows):
+        for i in range(W.cols):
+            W.values[j][i] -= lr * dW.values[j][i]   # mutate in place
+    for j in range(len(b)):
+        b[j] -= lr * db[j]
