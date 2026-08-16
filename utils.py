@@ -1,5 +1,7 @@
+import json
 import math
 import random
+from pathlib import Path
 
 from consts import LR
 from matrix import matrix
@@ -103,3 +105,33 @@ def sgd_update(W: matrix, b, dW: matrix, db, lr=LR):
             W.values[j][i] -= lr * dW.values[j][i]   # mutate in place
     for j in range(len(b)):
         b[j] -= lr * db[j]
+
+def save_checkpoint(path: str, epoch: int,
+                    weights: list[matrix], biases: list[list[float]], **meta) -> None:
+    p = Path(path)
+    if p.is_dir() or path.endswith(("/", "\\")):
+        raise ValueError(f"path must be a file, got directory: {path!r}")
+    p.parent.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+        "epoch":   epoch,
+        "shapes":  [[m.rows, m.cols] for m in weights],
+        "weights": [m.values for m in weights],
+        "biases":  biases,
+        **meta,
+    }
+
+    tmp = p.with_name(p.name + ".tmp")
+    tmp.write_text(json.dumps(payload))
+    tmp.replace(p)
+
+
+def load_checkpoint(path: str) -> tuple[int, list[matrix], list[list[float]], dict]:
+    data = json.loads(Path(path).read_text())
+    weights = [matrix(v) for v in data["weights"]]
+    for i, (m, (r, c)) in enumerate(zip(weights, data["shapes"])):
+        assert (m.rows, m.cols) == (r, c), \
+            f"checkpoint weight {i}: got {m.rows}x{m.cols}, file says {r}x{c}"
+    meta = {k: v for k, v in data.items()
+            if k not in ("epoch", "shapes", "weights", "biases")}
+    return data["epoch"], weights, data["biases"], meta 
