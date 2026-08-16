@@ -101,17 +101,31 @@ class matrix:
         return matrix([[self.values[i][j] * b.values[i][j]
                         for j in range(self.cols)] for i in range(self.rows)])
 
-    def conv2D(self, kernel: "matrix", stride:int=1, pos: Mode = "Top") -> "matrix":
-        s=kernel.rows
-        ls = []
-        for i in range(0, self.rows-s+1, stride):
-            t = []
-            for j in range(0, self.cols-s+1, stride):
-                curr_window = self.window(i,j,s,pos)
-                product = curr_window.dotProduct(kernel)
-                t.append(product.sum())
-            ls.append(t)
-        return matrix(ls)
+    # def conv2D(self, kernel: "matrix", stride:int=1, pos: Mode = "Top") -> "matrix":
+    #     s=kernel.rows
+    #     ls = []
+    #     for i in range(0, self.rows-s+1, stride):
+    #         t = []
+    #         for j in range(0, self.cols-s+1, stride):
+    #             curr_window = self.window(i,j,s,pos)
+    #             product = curr_window.dotProduct(kernel)
+    #             t.append(product.sum())
+    #         ls.append(t)
+    #     return matrix(ls)
+    def conv2D(self, kernel, stride=1):
+        s = kernel.rows; kv = kernel.values; sv = self.values
+        out = []
+        for i in range(0, self.rows - s + 1, stride):
+            row = []
+            for j in range(0, self.cols - s + 1, stride):
+                t = 0.0
+                for a in range(s):
+                    ra = sv[i+a]; ka = kv[a]
+                    for b in range(s):
+                        t += ra[j+b] * ka[b]
+                row.append(t)
+            out.append(row)
+        return matrix(out)
 
     def reLu(self) -> "matrix":
         m = [[0.0]*self.cols for i in range(self.rows)]
