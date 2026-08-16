@@ -92,7 +92,8 @@ if __name__ == "__main__":
             total_correct += correct
         print(f"epoch {epoch}  avg loss {total_loss / train_size:.4f}  "
               f"acc {total_correct}/{train_size}      target ln(10) = {math.log(10):.4f}")
-        save_checkpoint(f"weights/epoch{epoch}.json", epoch, [W1, W2], [b1, b2])
+        save_checkpoint(f"weights/epoch{epoch}.json", epoch, [W1, W2], [b1, b2],
+                        [conv1_filters, conv2_filters])
 
     W1.saveAs("W1")
     W2.saveAs("W2")

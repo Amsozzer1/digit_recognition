@@ -107,7 +107,8 @@ def sgd_update(W: matrix, b, dW: matrix, db, lr=LR):
         b[j] -= lr * db[j]
 
 def save_checkpoint(path: str, epoch: int,
-                    weights: list[matrix], biases: list[list[float]], **meta) -> None:
+                    weights: list[matrix], biases: list[list[float]],
+                    kernels: list[list[list[matrix]]], **meta) -> None:
     p = Path(path)
     if p.is_dir() or path.endswith(("/", "\\")):
         raise ValueError(f"path must be a file, got directory: {path!r}")
@@ -118,6 +119,7 @@ def save_checkpoint(path: str, epoch: int,
         "shapes":  [[m.rows, m.cols] for m in weights],
         "weights": [m.values for m in weights],
         "biases":  biases,
+        "kernels": [[[k.values for k in stack] for stack in layer] for layer in kernels],
         **meta,
     }
 
@@ -126,12 +128,17 @@ def save_checkpoint(path: str, epoch: int,
     tmp.replace(p)
 
 
-def load_checkpoint(path: str) -> tuple[int, list[matrix], list[list[float]], dict]:
+def load_checkpoint(
+    path: str,
+) -> tuple[int, list[matrix], list[list[float]], list[list[list[matrix]]], dict]:
     data = json.loads(Path(path).read_text())
     weights = [matrix(v) for v in data["weights"]]
     for i, (m, (r, c)) in enumerate(zip(weights, data["shapes"])):
         assert (m.rows, m.cols) == (r, c), \
             f"checkpoint weight {i}: got {m.rows}x{m.cols}, file says {r}x{c}"
+    # .get so checkpoints written before kernels were stored still load
+    kernels = [[[matrix(v) for v in stack] for stack in layer]
+               for layer in data.get("kernels", [])]
     meta = {k: v for k, v in data.items()
-            if k not in ("epoch", "shapes", "weights", "biases")}
-    return data["epoch"], weights, data["biases"], meta 
+            if k not in ("epoch", "shapes", "weights", "biases", "kernels")}
+    return data["epoch"], weights, data["biases"], kernels, meta
